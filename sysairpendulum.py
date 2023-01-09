@@ -1,5 +1,5 @@
 from numpy import pi, sin, sqrt, arange, floor, array, append
-from scipy.integrate import odeint
+from scipy.integrate import odeint, solve_ivp
 import matplotlib.pyplot as plt
 
 # Variaveis auxiliares
@@ -7,17 +7,17 @@ rad2deg = 180/pi
 deg2rad = pi/180
 
 b = 0.006856
-m = 0.3182
+m = 0.1182
 g = 9.81
-I = 0.0264
+I = 0.00264
 kh = 2.12829e-5
-LH = 0.32
+LH = 0.10
 
 class AirPendulum():
     # Definindo dinamica da planta
     # Parametros da planta
 
-    def __init__(self, theta_b=10, ta=1e-3):
+    def __init__(self, theta_b=20, ta=1e-2):
         super(AirPendulum, self).__init__()
 
         self.theta_register = array([])
@@ -37,6 +37,10 @@ class AirPendulum():
         self.lastError = 0
         self.lastError_register = array([])
 
+        self.lastError_I = 0
+
+        self.theta_b_register = array([])
+
         self.P = 0
         self.I = 0
         self.D = 0
@@ -45,10 +49,17 @@ class AirPendulum():
         # Evoluindo a din. da planta
         x0 = [self.theta,
               self.theta_p]   # condicao inicial
-        sol = odeint(self.model, x0, [0.0, self.ta],
-                     args=(omega,))
+        omega = min(omega,2500/9.55)
+        omega = max(omega,0)
 
-        self.omega = omega
+        # sol = odeint(self.model, x0, [0.0, self.ta],
+        #              args=(omega,))
+
+        sol = odeint(self.model, x0, [0.0, self.ta], 
+                     args=(omega,))
+        
+        self.omega = min(self.omega,2500/9.55)
+        self.omega = max(self.omega,0)
 
         # if self.omega > 1000/9.55:
         #     self.omega = 1000/9.55
@@ -59,6 +70,7 @@ class AirPendulum():
         self.omega_register= append(self.omega_register, self.omega)
         self.theta_register= append(self.theta_register, self.theta)
         self.theta_p_register= append(self.theta_p_register, self.theta_p)
+        self.theta_b_register= append(self.theta_b_register, self.theta_b)
 
         return [self.theta, self.theta_p]
 
@@ -67,25 +79,28 @@ class AirPendulum():
         x1, x2 = y
         # Dinamica do pendulo
         x1p = x2
-        x2p = (LH*kh/I)*omega**2 - (LH*m*g/I)*sin(x1) - (b/I)*x2
+        x2p = (LH*kh/I)*omega**2
+        x2p -= (LH*m*g/I)*sin(x1)
+        x2p -= (b/LH)*x2
         return [x1p, x2p]
 
     def calc_pid(self):
-        kp = 10
-        ki = 0
-        kd = 0
+        kp = 300
+        ki = 80
+        kd = 4.7
 
         error = (self.theta_b - self.theta)
         self.P = error * kp 
-        self.I += error * ki * self.ta
+        self.I = self.lastError_I + error * ki * self.ta
         self.D = (error - self.lastError) * kd / self.ta
 
         self.lastError = error
+        self.lastError_I = self.I
         self.lastError_register = append(self.lastError_register, self.lastError)
-        return self.P + self.I + self.D
-    
+        return (self.P + self.I + self.D)
+
     def control_simulation(self):
-        for k in range(30000):
+        for k in range(3000):
             # Entrada da planta
             if k*self.ta > 1:
                 self.omega = self.calc_pid()
@@ -94,6 +109,9 @@ class AirPendulum():
         
         self.plot_air_pendulum_result()
 
+    def update_reference(self, new_theta_b):
+        self.theta_b = new_theta_b*deg2rad
+        
     def plot_air_pendulum_result(self):
 
         # Plotando resultados
@@ -126,6 +144,13 @@ class AirPendulum():
         plt.figure()
         plt.plot(arange(0,self.lastError_register.size)*self.ta,
                  self.lastError_register, 'r--', lw=2, label=r'lastError (rad)')
+        plt.xlabel('Tempo (s)')
+        plt.legend()
+        plt.grid(True)
+
+        plt.figure()
+        plt.plot(arange(0,self.theta_b_register.size)*self.ta,
+                 self.theta_b_register, 'r--', lw=2, label=r'theta_b (rad)')
         plt.xlabel('Tempo (s)')
         plt.legend()
         plt.grid(True)
