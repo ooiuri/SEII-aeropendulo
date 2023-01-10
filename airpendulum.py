@@ -21,7 +21,7 @@ pygame.display.set_caption('Aeropendulo')
 slider = Slider(screen, Width/2 - 100, Height - 100, 200, 10, min=0, max=90, step=1, initial = initial_angle)
 output = TextBox(screen, Width/2 - 90, Height - 75, 50, 50, fontSize=30)
 
-aero_len = 225
+aero_len = 180
 aeropendulum = (Width/2, 125)
 angle = 0
 
@@ -54,7 +54,7 @@ angle_propeller = 0
 
 
 while True:
-    clock.tick(30)
+    clock.tick(60)
     events = pygame.event.get()
     for event in events:
         if event.type == QUIT:
@@ -82,7 +82,7 @@ while True:
 
     alfa = math.radians(90 - angle)
     angle_propeller += 20
-    propeller_len = 30 * math.sin(math.radians(angle_propeller))
+    propeller_len = 50 * math.sin(math.radians(angle_propeller))
     propellerX1 = 30*math.sin(math.radians(90 + angle)) + endX - propeller_len*math.cos(alfa)
     propellerY1 = 30*math.cos(math.radians(90 + angle)) + endY - propeller_len*math.sin(alfa)
     propellerX2 = 30*math.sin(math.radians(90 + angle)) + endX + propeller_len*math.cos(alfa)

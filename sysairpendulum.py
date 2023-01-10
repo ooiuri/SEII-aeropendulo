@@ -1,5 +1,5 @@
 from numpy import pi, sin, sqrt, arange, floor, array, append
-from scipy.integrate import odeint, solve_ivp
+from scipy.integrate import odeint
 import matplotlib.pyplot as plt
 
 # Variaveis auxiliares
@@ -9,15 +9,15 @@ deg2rad = pi/180
 b = 0.006856
 m = 0.1182
 g = 9.81
-I = 0.00264
+I = 0.0164
 kh = 2.12829e-5
-LH = 0.10
+LH = 0.32
 
 class AirPendulum():
     # Definindo dinamica da planta
     # Parametros da planta
 
-    def __init__(self, theta_b=20, ta=1e-2):
+    def __init__(self, theta_b=40, ta=1e-2):
         super(AirPendulum, self).__init__()
 
         self.theta_register = array([])
@@ -52,10 +52,7 @@ class AirPendulum():
         omega = min(omega,2500/9.55)
         omega = max(omega,0)
 
-        # sol = odeint(self.model, x0, [0.0, self.ta],
-        #              args=(omega,))
-
-        sol = odeint(self.model, x0, [0.0, self.ta], 
+        sol = odeint(self.model, x0, [0.0, self.ta],
                      args=(omega,))
         
         self.omega = min(self.omega,2500/9.55)
@@ -85,8 +82,8 @@ class AirPendulum():
         return [x1p, x2p]
 
     def calc_pid(self):
-        kp = 300
-        ki = 80
+        kp = 100
+        ki = 40
         kd = 4.7
 
         error = (self.theta_b - self.theta)
@@ -98,7 +95,7 @@ class AirPendulum():
         self.lastError_I = self.I
         self.lastError_register = append(self.lastError_register, self.lastError)
         return (self.P + self.I + self.D)
-
+    
     def control_simulation(self):
         for k in range(3000):
             # Entrada da planta
