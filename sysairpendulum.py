@@ -13,11 +13,15 @@ I = 0.0164
 kh = 2.12829e-5
 LH = 0.32
 
+kp = 50
+ki = 1
+kd = 40
+
 class AirPendulum():
     # Definindo dinamica da planta
     # Parametros da planta
 
-    def __init__(self, theta_b=40, ta=1e-2):
+    def __init__(self, theta_b=40, ta=1e-2, initial_omega=1500):
         super(AirPendulum, self).__init__()
 
         self.theta_register = array([])
@@ -40,6 +44,8 @@ class AirPendulum():
         self.lastError_I = 0
 
         self.theta_b_register = array([])
+
+        self.initial_omega = initial_omega/9.55
 
         self.P = 0
         self.I = 0
@@ -68,23 +74,25 @@ class AirPendulum():
         self.theta_register= append(self.theta_register, self.theta)
         self.theta_p_register= append(self.theta_p_register, self.theta_p)
         self.theta_b_register= append(self.theta_b_register, self.theta_b)
+        
+        self.initial_omega = sqrt((LH*m*g/I)*sin(self.theta_b) / (LH*kh/I))
 
         return [self.theta, self.theta_p]
 
     def model(self, y, _, omega):
         # Definindo estados
-        x1, x2 = y
+        x1, x2 = y # theta, theta_p
         # Dinamica do pendulo
         x1p = x2
         x2p = (LH*kh/I)*omega**2
         x2p -= (LH*m*g/I)*sin(x1)
         x2p -= (b/LH)*x2
+
+        # self.initial_omega = sqrt((LH*m*g/I)*sin(self.theta_b) / (LH*kh/I))
         return [x1p, x2p]
 
     def calc_pid(self):
-        kp = 100
-        ki = 40
-        kd = 4.7
+        
 
         error = (self.theta_b - self.theta)
         self.P = error * kp 
@@ -94,7 +102,7 @@ class AirPendulum():
         self.lastError = error
         self.lastError_I = self.I
         self.lastError_register = append(self.lastError_register, self.lastError)
-        return (self.P + self.I + self.D)
+        return (self.initial_omega + self.P + self.I + self.D)
     
     def control_simulation(self):
         for k in range(3000):
@@ -157,5 +165,6 @@ class AirPendulum():
 
         print(self.theta_b - self.theta)
 
-pendulo = AirPendulum()
-pendulo.control_simulation()
+if __name__ == '__main__':
+    pendulo = AirPendulum()
+    pendulo.control_simulation()
